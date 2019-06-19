@@ -7,6 +7,8 @@ from selenium.common.exceptions import TimeoutException
 from random import  shuffle
 import pandas as pd
 import time
+import dbm
+
 
 option = webdriver.ChromeOptions()
 
@@ -75,19 +77,24 @@ for link in link_list:
     print("category ",category)
     category_list.append(category)
 
-
-
-
-
 # Let us make a panda dataframe of title, price
 data = {'link':link_list,'product_title': product_title_list,'product_price': product_price_list, 'category': category_list}
 df_product = pd.DataFrame.from_dict(data)
+df_product.index.name = 'id'
 print(df_product.head())
-
-# Exporting the data into csv
-df_product.to_csv('product_info_amazon.csv')
 
 # Generate time tracker print
 end = time.time()
 print('for end-start')
 print("For {} links, the time taken is {}".format(len(link_list), end-start))
+
+# -------------------------------EXPORT and SAVE-------------------------------
+# Exporting the data into csv
+# df_product.to_csv('product_info_amazon.csv')
+
+# Inserting into sqlite
+# dbm.write_from_df(df_product)
+
+# Inserting into sqlite with alchemy
+dbm.write_from_df_with_alchemy(df_product)
+
