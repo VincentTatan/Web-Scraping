@@ -1,6 +1,6 @@
 import sqlite3
 
-sqlite_file = 'amazon.sqlite'    # name of the sqlite database file
+sqlite_file = 'amazon.db'    # name of the sqlite database file
 
 # Connecting to the database file
 conn = sqlite3.connect(sqlite_file)

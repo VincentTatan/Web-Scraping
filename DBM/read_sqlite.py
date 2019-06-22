@@ -2,7 +2,7 @@ import pandas as pd
 import sqlite3
 
 
-conn = sqlite3.connect("amazon.sqlite")
+conn = sqlite3.connect("amazon.db")
 
 def read_sql():
     df = pd.read_sql_query("select * from amazon_product;", conn)
