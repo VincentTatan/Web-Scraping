@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 import pandas as pd
+import dbm
 
 
 # Run the argument with incognito
@@ -69,6 +70,12 @@ df_product = pd.DataFrame.from_dict(data)
 
 print(df_product.head())
 
-
+# -------------------------------EXPORT and SAVE-------------------------------
 # Exporting the data into csv
-# df_product.to_csv('product_info.csv')
+# df_product.to_csv('product_info_lazada.csv')
+
+# Inserting into sqlite
+# dbm.write_from_df_with_sqlite3(df_product)
+
+# Inserting into sqlite with alchemy
+dbm.write_from_df_with_alchemy(df_product)
