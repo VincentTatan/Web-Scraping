@@ -3,6 +3,9 @@ from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
 import dbm
+import plotly.graph_objs as go
+import re
+
 
 # Set up the app
 app = dash.Dash(__name__)
@@ -34,40 +37,93 @@ app.layout = html.Div([
         html.H1('Price Optimization Dashboard'),
         html.H2('Choose a product name'),
         dcc.Dropdown(
-            id='my-dropdown',
+            id='product-dropdown',
             options=dict_products,
             multi=True,
-            # value=dict_product_list(dict_products)
+            value = ["Ben & Jerry's Wake and No Bake Cookie Dough Core Ice Cream","Brewdog Punk IPA"]
         ),
-        html.H2('price graph'),
-        dcc.Graph(id='my-graph'),
-        html.P('')
+        dcc.Graph(
+            id='product-like-bar'
+        )
     ], style={'width': '40%', 'display': 'inline-block'}),
     html.Div([
         html.H2('All product info'),
         html.Table(id='my-table'),
         html.P(''),
-    ], style={'width': '55%', 'float': 'right', 'display': 'inline-block'})
+    ], style={'width': '55%', 'float': 'right', 'display': 'inline-block'}),
+    html.Div([
+        html.H2('price graph'),
+        dcc.Graph(id='product-trend-graph'),
+        html.P('')
+    ], style={'width': '100%',  'display': 'inline-block'})
+
 ])
 
 
-# For the product price graph
-@app.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value')])
+
+@app.callback(Output('product-like-bar', 'figure'), [Input('product-dropdown', 'value')])
 def update_graph(selected_dropdown_value):
     product_df_filter = product_df[(product_df['product_title'].isin(selected_dropdown_value))]
 
-    return {
-        'data': [{
-            'x': product_df_filter.datetime,
-            'y': product_df_filter.product_price
-        }]
+    # Take the one with max datetime and remove duplicates for this bar chart
+    product_df_filter = product_df_filter.sort_values('datetime', ascending=False).drop_duplicates(['index'])
+
+    #Rating count check
+    def format_rating(rating):
+        return re.sub('\((\d+)\)', r'\1', rating)
+
+    product_df_filter['rating_count'] = product_df_filter['rating_count'].apply(format_rating)
+
+    figure = {
+        'data': [go.Bar(
+            y=product_df_filter.product_title,
+            x=product_df_filter.rating_count,
+            orientation='h'
+        )],
+        'layout':go.Layout(
+            title= 'Product Rating Trends',
+            yaxis = dict(
+                # autorange=True,
+                automargin=True
+            )
+        )
     }
+    return figure
+
+
+# For the top topics graph
+@app.callback(Output('product-trend-graph', 'figure'), [Input('product-dropdown', 'value')])
+def update_graph(selected_dropdown_value):
+    product_df_filter = product_df[(product_df['product_title'].isin(selected_dropdown_value))]
+
+    data = timeline_top_product_filtered(product_df_filter,selected_dropdown_value)
+    # Edit the layout
+    layout = dict(title='Product Price Trends',
+                  xaxis=dict(title='datetime'),
+                  yaxis=dict(title='Price'),
+                  )
+    figure = dict(data=data,layout=layout)
+    return figure
+
+def timeline_top_product_filtered(top_product_filtered_df, selected_dropdown_value):
+    # Make a timeline
+    trace_list = []
+    for value in selected_dropdown_value:
+        top_product_value_df = top_product_filtered_df[top_product_filtered_df['product_title']==value]
+        trace = go.Scatter(
+            y=top_product_value_df.product_price,
+            x=top_product_value_df.datetime,
+            name = value
+        )
+        trace_list.append(trace)
+    return trace_list
 
 
 # for the table
-@app.callback(Output('my-table', 'children'), [Input('my-dropdown', 'value')])
+@app.callback(Output('my-table', 'children'), [Input('product-dropdown', 'value')])
 def generate_table(selected_dropdown_value, max_rows=20):
     product_df_filter = product_df[(product_df['product_title'].isin(selected_dropdown_value))]
+    product_df_filter = product_df_filter.sort_values(['index','datetime'], ascending=True)
 
     return [html.Tr([html.Th(col) for col in product_df_filter  .columns])] + [html.Tr([
         html.Td(product_df_filter.iloc[i][col]) for col in product_df_filter  .columns
@@ -75,3 +131,17 @@ def generate_table(selected_dropdown_value, max_rows=20):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+
+
+# For the product price graph individual
+# @app.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value')])
+# def update_graph(selected_dropdown_value):
+#     product_df_filter = product_df[(product_df['product_title'].isin(selected_dropdown_value))]
+#
+#     return {
+#         'data': [{
+#             'x': product_df_filter.datetime,
+#             'y': product_df_filter.product_price
+#         }]
+#     }

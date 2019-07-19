@@ -31,4 +31,4 @@ def write_from_df_with_alchemy(df):
     df['datetime'] = pd.Timestamp("today").strftime("%m/%d/%Y")
 
     # Appending the results to lazada_producct
-    df.to_sql('lazada_product', disk_engine, if_exists='replace')
+    df.to_sql('lazada_product', disk_engine, if_exists='append')

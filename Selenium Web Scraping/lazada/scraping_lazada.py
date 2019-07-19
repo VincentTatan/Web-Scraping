@@ -37,7 +37,7 @@ for i in range(len(links)):
 
 # Clicking toys menu to find the right one
 # You might receive error if you just perform element.click(). This is due to the element might not actionable according to DOM
-element = driver.find_elements_by_class_name('J_ChannelsLink')[1]
+element = driver.find_elements_by_class_name('J_ChannelsLink')[2]
 webdriver.ActionChains(driver).move_to_element(element).click(element).perform()
 
 # try:
