@@ -5,6 +5,7 @@ import dash_html_components as html
 import dbm
 import plotly.graph_objs as go
 import re
+import smtp_alert
 
 
 # Set up the app
@@ -55,8 +56,8 @@ app.layout = html.Div([
         html.H2('price graph'),
         dcc.Graph(id='product-trend-graph'),
         html.P('')
-    ], style={'width': '100%',  'display': 'inline-block'})
-
+    ], style={'width': '100%',  'display': 'inline-block'}),
+    html.Div(id='hidden-email-alert', style={'display':'none'})
 ])
 
 
@@ -66,7 +67,8 @@ def update_graph(selected_dropdown_value):
     product_df_filter = product_df[(product_df['product_title'].isin(selected_dropdown_value))]
 
     # Take the one with max datetime and remove duplicates for this bar chart
-    product_df_filter = product_df_filter.sort_values('datetime', ascending=False).drop_duplicates(['index'])
+    product_df_filter = product_df_filter.sort_values('datetime', ascending=False)
+    product_df_filter = product_df_filter.drop_duplicates(['index'])
 
     #Rating count check
     def format_rating(rating):
@@ -89,7 +91,6 @@ def update_graph(selected_dropdown_value):
         )
     }
     return figure
-
 
 # For the top topics graph
 @app.callback(Output('product-trend-graph', 'figure'), [Input('product-dropdown', 'value')])
@@ -128,6 +129,21 @@ def generate_table(selected_dropdown_value, max_rows=20):
     return [html.Tr([html.Th(col) for col in product_df_filter  .columns])] + [html.Tr([
         html.Td(product_df_filter.iloc[i][col]) for col in product_df_filter  .columns
     ]) for i in range(min(len(product_df_filter  ), max_rows))]
+
+@app.callback(Output('hidden-email-alert', 'id'), [Input('product-dropdown', 'value')])
+def send_alert(selected_dropdown_value):
+    # To send emails if the latest price is lower than original price
+    for product_title in selected_dropdown_value:
+        product_df_specific = product_df[product_df['product_title'] == product_title].sort_values('datetime',
+                                                                                                   ascending=True)
+        original_price = product_df_specific.product_price.values[0]
+        latest_price = product_df_specific.product_price.values[-1]
+        print(product_title, original_price, latest_price)
+        if (latest_price < original_price):
+            smtp_alert.send_alert_of_price_reduction(product_title, original_price, latest_price)
+    return None
+
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
